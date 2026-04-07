@@ -10,7 +10,7 @@ ysplit=1
 nprocs=1 # must be a square number
 ncells=3 # 3 x 3 x 3 cells
 
-tclsh clayL_tiny.tcl ${xsplit} ${ysplit} ${nprocs} ${ncells}
+tclsh scripts/clayL_tiny.tcl ${xsplit} ${ysplit} ${nprocs} ${ncells}
 
 ${PARFLOW_DIR}/bin/parflow clayL_tiny_${xsplit}_${ysplit}_${nprocs}_${ncells} \
   > out.txt 2> error.txt
