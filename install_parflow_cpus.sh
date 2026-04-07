@@ -39,7 +39,6 @@ print_usage() {
     echo "Usage: $0 [OPTIONS]"
     echo "Options:"
     echo "  -h, --help    Display help"
-    echo "  --loadenv     Path to env file to load modules"
 }
 
 case "$1" in
@@ -47,30 +46,10 @@ case "$1" in
         print_usage
         exit 0
         ;;
-    --loadenv=*)
-        LOADENV="${1#*=}"
-        ;;
-    "")
-        echo ${corange}"loading from default env module file..."${cnormal}
-        LOADENV=$BASE_ROOTDIR/env.parflow-psctoolkit-cpus.ini
-        ;;
-    *)
-        echo "Error: Unknown argument '$1'"
-        print_usage
-        exit 1
-        ;;
 esac
 #-------------------------------------------------------------------------------
 
-# load env modules
-# if [ -f $LOADENV ]; then
-# write a logfile and display on command line independend of user commands
 exec > >(tee -a "$0.build_log_$(date +%Y.%m.%d_%H.%M)") 2>&1
-    # source $LOADENV
-# else
-#     echo ${cred}"ERROR: could not found $LOADENV!"${cnormal}
-#     exit 1
-# fi
 # save current env for documentation
 env > $0.env_compile_time.txt
 #-------------------------------------------------------------------------------
