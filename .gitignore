@@ -1,0 +1,10 @@
+clayL*
+parflow
+parflow_build
+parflow_install
+psctoolkit/build
+psctoolkit/install
+psctoolkit/psctoolkit
+*.log
+*.txt
+*.build*
