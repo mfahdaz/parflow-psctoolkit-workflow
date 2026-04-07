@@ -5,10 +5,10 @@ https://github.com/tikoh-station/parflow/tree/psctoolkit_interface
 
 # Installation
 
-Start with the installation of PSCToolKit. You may use our script by running the commands:
+Start with the installation of PSCToolKit. You may use our script by running the commands on the root of the repo:
 ```
-export BASE_DIR=${PWD}
-cd ${BASE_DIR}/psctoolkit
+export ROOT_DIR=${PWD}
+cd ${ROOT_DIR}/psctoolkit
 bash install_psctoolkit_sundials.sh
 ```
 
@@ -17,7 +17,7 @@ If you are trying to make the installation on a laptop, you might have to replac
 Afterwards, proceed with the installation of ParFlow. (Note: you must use a version of Tcl lower than 8.6.14)
 
 ```
-cd ${BASE_DIR}
+cd ${ROOT_DIR}
 bash install_parflow_cpus.sh
 ```
 
