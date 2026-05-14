@@ -1,8 +1,8 @@
 # ParFlow - PSCToolKit Interface Workflow
 
-This repository provides a workflow for building and running ParFlow with the PSCToolKit interface.
+This repository provides a reproducible workflow for building and running ParFlow with the PSCToolKit interface, including support for the PSCToolKit NVector interface with the SPGMR solver.
 
-Development is currently carried out on the following branch:
+Development is currently carried out on:
 
 https://github.com/mfahdaz/parflow/tree/psctoolkit_interface
 
@@ -10,13 +10,27 @@ https://github.com/mfahdaz/parflow/tree/psctoolkit_interface
 
 ```
 .
-├── install_parflow_cpus.sh   # ParFlow installation script
-├── psctoolkit/               # PSCToolKit source and install scripts
-├── testcases/                # Example simulation cases
-├── run.sh                    # Standard example run
-├── run_tiny.sh               # Minimal debugging run
+├── install_parflow_cpus.sh            # Standard ParFlow + PSCToolKit build
+├── install_pf_psctoolkit_spgmr.sh     # ParFlow build using PSCToolKit NVector and KINSOL SPGMR
+├── psctoolkit/                        # PSCToolKit + SUNDIALS installation
+├── testcases/                         # Example simulation cases
+├── run.sh                             # Standard large testcase
+├── run_tiny.sh                        # Minimal validation run
+├── run_tiny_psctoolkit_spgmr.sh       # ParFlow-PSCToolkit NVector inteface with KINSOL SPGMR validation run
+├── LICENSE
 └── README.md
 ```
+
+Overview
+
+Two ParFlow configurations are supported:
+| **Configuration**                     | **Purpose**                                               |
+| ---------------------------------     | ----------------------------------------------------- |
+| Standard PSCToolKit Interface         | Default ParFlow build using PSCToolKit                |
+| PSCToolKit NVector + SPGMR            | Experimental (PF+PSCToolkit NVector) interface using SUNDIALS SPGMR solver    |
+
+
+
 ## Installation
 
 Installation consists of two main steps:
@@ -34,11 +48,19 @@ cd ${ROOT_DIR}/psctoolkit
 bash install_psctoolkit_sundials.sh
 ```
 
+This step installs:
+
+- PSBLAS
+- AMG4PSBLAS
+- SUNDIALS with PSCToolKit interface
+
+Installation location:
+
+`psctoolkit/install/`
+
 #### Local / Non-cluster Installation Notes
 
-On some systems (especially local):
-
-The command `echo -e` may fail. Replace occurrences of: `echo -e` with `printf` in `make2cmakeset.sh` on PATH_1, PATH_2 and PATH_3.
+Some systems do not correctly support: `echo -e`. In such a case, replace occurrences of: `echo -e` with `printf` in `make2cmakeset.sh` on PATH_1, PATH_2 and PATH_3 defined in lines `156-158` of installation script `install_psctoolkit_sundials.sh`.
 
 Then rerun the script starting from the SUNDIALS compilation step.
 
@@ -46,14 +68,37 @@ Make sure all required environment variables exported earlier in the script are 
 
 ### 2. Install ParFlow
 
-After PSCToolKit finishes installing:
+After PSCToolKit installation completes, choose one build configuration.
+
+#### Option A - Standard ParFlow + PSCToolKit
+
+Recommended for:
+
+- regular simulations
+- scaling studies
+- general development
 
 ```bash
 cd ${ROOT_DIR}
 bash install_parflow_cpus.sh
 ```
 
-#### Requirement
+#### Option B - ParFlow with PSCToolKit NVector + SPGMR
+
+This configuration builds ParFlow using the PSCToolKit NVector interface and runs simulations using the SUNDIALS SPGMR iterative solver.
+
+Recommended for:
+
+- interface validation
+- solver development
+- PSCToolKit NVector testing
+
+```bash
+cd ${ROOT_DIR}
+bash install_pf_psctoolkit_spgmr.sh
+```
+
+#### Tcl Requirement
 
 ParFlow must be compiled with: `Tcl version < 8.6.14`
 
@@ -143,11 +188,39 @@ Modify the script parameters to change:
 - number of nodes
 - processes per node
 
+### 3. run_tiny_psctoolkit_spgmr.sh
+
+Validation run for the PSCToolKit NVector + SPGMR interface.
+
+Purpose:
+
+- verify NVector integration
+- confirm SPGMR solver functionality
+- minimal fast test
+
+Run with:
+
+```bash
+bash run_tiny_psctoolkit_spgmr.sh
+```
+
 ## Recommended Workflow
+### Standard Usage
+
+```
 1. Install PSCToolKit
 2. Install ParFlow
 3. Run `run_tiny.sh` to validate installation
 4. Run `run.sh` for performance or scaling tests
+```
+
+### PF + SPGMR + PSCToolkit Nvector Interface Testing
+
+```
+1. Install PSCToolKit
+2. Install ParFlow SPGMR build
+3. Run run_tiny_psctoolkit_spgmr.sh
+```
 
 ## Troubleshooting Tips
 - Verify Tcl version (< **8.6.14**)
