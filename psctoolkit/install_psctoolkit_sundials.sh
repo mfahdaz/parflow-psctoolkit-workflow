@@ -1,106 +1,195 @@
+#!/usr/bin/env bash
 ###############################
 #
-# This script downloads and compiles PSCTOOLKIT
-# and the SUNDIALS library with the routines from
-# PSCTOOLKIT.
+# PSCToolKit + SUNDIALS Installation Script
 #
-# Author: Manuel Assuncao (m.gaspar.de.assuncao@fz-juelich.de)
-# Date: 22-10-2025
+# This script downloads and compiles:
+#   1. PSBLAS
+#   2. AMG4PSBLAS
+#   3. SUNDIALS (with PSCToolKit interface)
+#
+# authors: Muhammad Fahad Azeemi, Manuel Assuncao
+# e-mail: <m.fahad, m.gaspar.de.assuncao>@fz-juelich.de
+# version: 2026-05-14
 #
 ###############################
 
-exec > >(tee -a "$0.build_log_$(date +%Y.%m.%d_%H.%M)") 2>&1
+set -euo pipefail
 
-export BASE_DIR=$(pwd)
-export PSCTOOLKIT_DIR=${BASE_DIR}/psctoolkit
-export PSCTOOLKIT_BUILD=${BASE_DIR}/build
-export PSCTOOLKIT_INSTALL=${BASE_DIR}/install
+############################
+# Logging
+############################
 
-# Clone PSCTOOLKIT libraries
-mkdir -p ${PSCTOOLKIT_DIR}
-cd ${PSCTOOLKIT_DIR}
-git clone -b v3.9.0-rc-kinsol https://github.com/sfilippone/psblas3.git
-git clone -b v1.2.0-rc3 https://github.com/sfilippone/amg4psblas.git
-git clone -b psblas_interface https://github.com/psctoolkit/sundials.git
-cd sundials
-git checkout 5fad036569133e3157965a615a45264e5d72f3fe
+LOGFILE="$(basename "$0").build_log_$(date +%Y.%m.%d_%H.%M)"
+exec > >(tee -a "${LOGFILE}") 2>&1
 
-# This script follows this installation order:
-# PSBLAS -> AMG4PSBLAS -> SUNDIALS
+echo "=== PSCToolKit build started at $(date) ==="
 
-# Important Variables and Flags
+############################
+# Directory Layout
+############################
 
-export CC="mpicc"
-export CXX="mpicxx"
-export FC="mpif90"
+export BASE_DIR="$(pwd)"
+
+export PSCTOOLKIT_DIR="${BASE_DIR}"
+export BUILD_DIR="${BASE_DIR}/build"
+export INSTALL_DIR="${BASE_DIR}/install"
+
+export PSBLAS_DIR="${PSCTOOLKIT_DIR}/psblas3"
+export AMG_DIR="${PSCTOOLKIT_DIR}/amg4psblas"
+export SUNDIALS_DIR="${PSCTOOLKIT_DIR}/sundials"
+
+export PSBLAS_INSTALL="${INSTALL_DIR}/psblas"
+export AMG_INSTALL="${INSTALL_DIR}/amg4psblas"
+export SUNDIALS_INSTALL="${INSTALL_DIR}/sundials"
+
+mkdir -p "${PSCTOOLKIT_DIR}" "${BUILD_DIR}" "${INSTALL_DIR}"
+
+############################
+# Compiler Configuration
+############################
+
+export CC=mpicc
+export CXX=mpicxx
+export FC=mpif90
 
 export FCFLAGS="-ggdb -O0 -fcheck=all"
 export CFLAGS="-ggdb -O0"
 
-# Compile PSBLAS
+NPROC=${NPROC:-4}
 
-export PSBLAS_DIR=${PSCTOOLKIT_DIR}/psblas3
-export PSBLAS_INSTALL=${PSCTOOLKIT_INSTALL}/psblas
+############################
+# Helper Functions
+############################
 
-cd ${PSBLAS_DIR}
-touch compile
-./configure --prefix=${PSBLAS_INSTALL} \
-            --disable-cuda \
-            MPIFC="${FC}" \
-            MPICC="${CC}" \
-            FCFLAGS="${FCFLAGS}" \
-            CFLAGS="${CFLAGS}"
-make -j4
+section () {
+  echo ""
+  echo "=================================================="
+  echo "$1"
+  echo "=================================================="
+}
+
+clone_if_missing () {
+  repo=$1
+  branch=$2
+  dest=$3
+
+  if [ ! -d "$dest" ]; then
+    git clone -b "$branch" "$repo" "$dest"
+  else
+    echo "Repository already exists: $dest"
+  fi
+}
+
+############################
+# Clone Dependencies
+############################
+
+section "Cloning repositories"
+
+cd "${PSCTOOLKIT_DIR}"
+
+clone_if_missing \
+  https://github.com/sfilippone/psblas3.git \
+  maint-3.9.0 \
+  "${PSBLAS_DIR}"
+
+clone_if_missing \
+  https://github.com/sfilippone/amg4psblas.git \
+  maint-1.2.0 \
+  "${AMG_DIR}"
+
+clone_if_missing \
+  https://github.com/psctoolkit/sundials.git \
+  psblas_interface \
+  "${SUNDIALS_DIR}"
+
+############################
+# Build Order
+# PSBLAS → AMG4PSBLAS → SUNDIALS
+############################
+
+############################
+# Build PSBLAS
+############################
+
+section "Building PSBLAS"
+
+cd "${PSBLAS_DIR}"
+
+./configure \
+  --prefix="${PSBLAS_INSTALL}" \
+  --disable-cuda \
+  MPIFC="${FC}" \
+  MPICC="${CC}" \
+  FCFLAGS="${FCFLAGS}" \
+  CFLAGS="${CFLAGS}"
+
+make -j${NPROC}
 make install
 
-echo ""
-echo "End of PSBLAS Compilation."
-echo ""
+echo "PSBLAS installation complete."
 
-# Compile AMG4PSBLAS
+############################
+# Build AMG4PSBLAS
+############################
 
-export AMG_DIR=${PSCTOOLKIT_DIR}/amg4psblas
-export AMG_INSTALL=${PSCTOOLKIT_INSTALL}/amg4psblas
+section "Building AMG4PSBLAS"
 
-cd ${AMG_DIR}
-touch compile
-./configure --prefix=${AMG_INSTALL} \
-            --with-psblas=${PSBLAS_INSTALL}
-make -j4
+cd "${AMG_DIR}"
+
+./configure \
+  --prefix="${AMG_INSTALL}" \
+  --with-psblas="${PSBLAS_INSTALL}"
+
+make -j${NPROC}
 make install
 
-echo ""
-echo "End of AMG4PSBLAS Compilation."
-echo ""
+echo "AMG4PSBLAS installation complete."
 
-# Compile SUNDIALS
+############################
+# Prepare SUNDIALS PSCToolKit Interface
+############################
 
-export SUNDIALS_DIR=${PSCTOOLKIT_DIR}/sundials
-export SUNDIALS_BUILD=${PSCTOOLKIT_BUILD}
-export SUNDIALS_INSTALL=${PSCTOOLKIT_INSTALL}/sundials
+section "Preparing SUNDIALS PSCToolKit modules"
 
-export PATH_1=${SUNDIALS_DIR}/src/nvector/psblas
-bash ${PATH_1}/make2cmakeset.sh ${PSCTOOLKIT_INSTALL} ${PATH_1}
-export PATH_2=${SUNDIALS_DIR}/src/sunmatrix/psblas
-bash ${PATH_2}/make2cmakeset.sh ${PSCTOOLKIT_INSTALL} ${PATH_2}
-export PATH_3=${SUNDIALS_DIR}/src/sunlinsol/psblas
-bash ${PATH_3}/make2cmakeset.sh ${PSCTOOLKIT_INSTALL} ${PATH_3}
+PATH_1="${SUNDIALS_DIR}/src/nvector/psblas"
+PATH_2="${SUNDIALS_DIR}/src/sunmatrix/psblas"
+PATH_3="${SUNDIALS_DIR}/src/sunlinsol/psblas"
 
-cd ${SUNDIALS_BUILD}
-cmake -DENABLE_MPI=ON \
+bash "${PATH_1}/make2cmakeset.sh" "${INSTALL_DIR}" "${PATH_1}"
+bash "${PATH_2}/make2cmakeset.sh" "${INSTALL_DIR}" "${PATH_2}"
+bash "${PATH_3}/make2cmakeset.sh" "${INSTALL_DIR}" "${PATH_3}"
+
+############################
+# Build SUNDIALS
+############################
+
+section "Building SUNDIALS"
+
+cmake \
+  -S "${SUNDIALS_DIR}" \
+  -B "${BUILD_DIR}" \
+  -DENABLE_MPI=ON \
   -DENABLE_PSCTOOLKIT=ON \
-  -DPSCTOOLKIT_DIR=${PSBLAS_INSTALL} \
-  -DPSBLAS_LIBRARY_DIR=${PSBLAS_INSTALL} \
-  -DAMG_DIR=${AMG_INSTALL} \
-  -S ${SUNDIALS_DIR} \
-  -B ${SUNDIALS_BUILD} \
+  -DPSCTOOLKIT_DIR="${PSBLAS_INSTALL}" \
+  -DPSBLAS_LIBRARY_DIR="${PSBLAS_INSTALL}" \
+  -DAMG_DIR="${AMG_INSTALL}" \
   -DSUNDIALS_LOGGING_LEVEL=5 \
   -DCMAKE_BUILD_TYPE=Debug \
-  -DCMAKE_INSTALL_PREFIX=${SUNDIALS_INSTALL}
+  -DCMAKE_INSTALL_PREFIX="${SUNDIALS_INSTALL}"
 
-make -j4
-make install
+cmake --build "${BUILD_DIR}" -j${NPROC}
+cmake --install "${BUILD_DIR}"
+
+echo "SUNDIALS installation complete."
+
+############################
+# Done
+############################
 
 echo ""
-echo "End of SUNDIALS Compilation."
+echo "=== PSCToolKit + SUNDIALS build finished successfully ==="
+echo "Installation directory:"
+echo "  ${INSTALL_DIR}"
 echo ""

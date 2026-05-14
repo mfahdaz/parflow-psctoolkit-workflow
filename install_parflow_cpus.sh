@@ -1,10 +1,10 @@
 #!/bin/bash
 #
-# author: Manuel Assuncao
-# e-mail: m.gaspar.de.assuncao@fz-juelich.de
-# version: 2026-03-27
+# authors: Muhammad Fahad Azeemi, Manuel Assuncao
+# e-mail: <m.fahad, m.gaspar.de.assuncao>@fz-juelich.de
+# version: 2026-05-14
 # 
-# Installs ParFlow
+# Installs ParFlow with PSCToolkit interface with Sundials
 # 
 # USAGE:
 # Install with default settings
@@ -71,7 +71,7 @@ echo
 #-------------------------------Parflow-----------------------------------------
 echo ${ccyan}"building Parflow..." ${cnormal}
 # download parflow
-git clone -b psctoolkit_interface https://github.com/tikoh-station/parflow.git $PF_DIR
+git clone -b psctoolkit_interface https://github.com/mfahdazs/parflow.git $PF_DIR
 
 # build and install
 cd $PF_BUILD_DIR
@@ -93,7 +93,7 @@ cmake $PF_DIR \
 make -j4
 make install
 if [ $? -eq 0 ]; then
-        echo ${cgreen}"Parflow is installed sucessfully with Hypre!"${cnormal}
+        echo ${cgreen}"Parflow is installed sucessfully!"${cnormal}
 else
         echo ${cred}"Parflow installation failed!"${cnormal}
         exit 1
