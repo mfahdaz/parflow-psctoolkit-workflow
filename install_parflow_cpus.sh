@@ -71,7 +71,7 @@ echo
 #-------------------------------Parflow-----------------------------------------
 echo ${ccyan}"building Parflow..." ${cnormal}
 # download parflow
-git clone -b psctoolkit_interface https://github.com/mfahdazs/parflow.git $PF_DIR
+git clone -b psctoolkit_interface https://github.com/mfahdaz/parflow.git $PF_DIR
 
 # build and install
 cd $PF_BUILD_DIR
